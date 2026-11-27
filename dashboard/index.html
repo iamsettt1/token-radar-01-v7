@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launch Radar — pre-token protocols, valued from their own record</title>
+<link rel="stylesheet" href="radar.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-in">
+    <div class="brand">
+      <span class="blip" aria-hidden="true"></span>
+      <div>
+        <h1>Launch Radar</h1>
+        <p class="tagline">Pre-token protocols, valued from their own record — every figure fitted on this snapshot and tested out of sample.</p>
+      </div>
+    </div>
+    <p class="snapmeta" id="snapmeta"></p>
+  </div>
+
+  <section class="freshness" aria-label="Snapshot freshness and refresh schedule">
+    <span class="fresh-item" id="fresh-sealed">Snapshot sealed: 2026-11-14 · 758 protocols · checksum e8d1f2ea</span>
+    <span class="fresh-item">Refresh cadence: weekly — the radar re-scans and re-prices every Monday 00:00 UTC</span>
+    <span class="fresh-item" id="fresh-next">Next scheduled refresh: Monday 2026-11-30 00:00 UTC · <b id="fresh-cd">countdown —</b></span>
+  </section>
+
+  <section class="evstrip" id="evstrip" aria-label="Evidence strip"></section>
+
+  <section class="kpis" id="kpis" aria-label="Model evidence at a glance"></section>
+
+  <p class="formula">Implied value = <strong>value if it launches</strong> (TVL through a fitted size curve and family effect) &times; <strong>token odds</strong> (the model's chance it records a token within 24 months). Each coefficient is fitted on this snapshot and tested held-out four ways; a term is kept only when it improves at least three of the four tests, and every test is printed below.</p>
+
+  <section class="accounting" aria-label="Protocol accounting">
+    <div class="acct-head"><span>Protocol accounting</span><span class="acct-note" id="acct-note"></span></div>
+    <div class="acct-bar" id="acct-bar"></div>
+    <div class="acct-legend" id="acct-legend"></div>
+  </section>
+
+  <div class="chips" id="chips" aria-label="Self checks"></div>
+
+  <section class="evidence" aria-label="Out-of-sample evidence">
+    <div class="ev-head"><h2>Out-of-sample evidence</h2><span class="ev-note">four held-out tests — hash-parity halves in both directions, leave-one-out (value) or 10-fold (odds), and walk-forward by listing date; a term is kept only if it improves at least three of the four, and the control is fitted so the kept terms can be judged against noise</span></div>
+    <div class="ev-grid">
+      <div class="ev-card">
+        <h3>Value if it launches — median miss ×, then % of real caps within a factor of two, <span id="ev-vn"></span> priced comparables</h3>
+        <table class="evtable"><thead><tr><th>Term, added in order</th><th class="num">Halves A→B</th><th class="num">Halves B→A</th><th class="num">Leave-one-out</th><th class="num">Walk-forward</th><th></th></tr></thead><tbody id="ev-value"></tbody></table>
+      </div>
+      <div class="ev-card">
+        <h3>Token odds — Brier score, <span id="ev-on"></span> dated protocols</h3>
+        <table class="evtable"><thead><tr><th>Term, added in order</th><th class="num">Halves A→B</th><th class="num">Halves B→A</th><th class="num">10-fold</th><th class="num">Walk-forward</th><th></th></tr></thead><tbody id="ev-odds"></tbody></table>
+      </div>
+      <div class="ev-card">
+        <h3>Is the printed range honest?</h3>
+        <table class="evtable"><thead><tr><th>Share of real caps inside</th><th class="num">Stated</th><th class="num">Leave-one-out</th><th class="num">Walk-forward</th></tr></thead><tbody id="ev-range"></tbody></table>
+        <p class="ev-fit" id="ev-fit"></p>
+        <p class="reading" id="reading"></p>
+      </div>
+    </div>
+  </section>
+</header>
+
+<main class="layout">
+  <section class="board" aria-label="Ranked board">
+    <div class="controls">
+      <div class="tabs" id="tabs" role="tablist"></div>
+      <label class="ctl">Segment
+        <select id="seg">
+          <option value="">All segments</option>
+          <option value="watchlist">Watchlist</option>
+          <option value="early">Early (≥ floor)</option>
+          <option value="off-list">Off-list</option>
+        </select>
+      </label>
+      <label class="ctl">Deposit
+        <select id="depmode">
+          <option value="pct">Plan size, 0.02% of TVL</option>
+          <option value="1000">$1K fixed</option>
+          <option value="10000">$10K fixed</option>
+          <option value="100000">$100K fixed</option>
+        </select>
+      </label>
+      <div class="ctl">Drop share
+        <div class="segbtns" id="dropbtns"></div>
+      </div>
+      <div class="ctl">Horizon
+        <div class="segbtns" id="horbtns"></div>
+      </div>
+    </div>
+    <div class="controls">
+      <label class="ctl grow">Search
+        <input id="q" type="search" placeholder="Protocol, category or chain…" autocomplete="off">
+      </label>
+      <label class="ctl">Category
+        <select id="cat"><option value="">All categories</option></select>
+      </label>
+      <label class="ctl">Chain
+        <select id="chain"><option value="">All chains</option></select>
+      </label>
+      <div class="ctl">Export
+        <div class="segbtns">
+          <button type="button" id="reset">Reset</button>
+          <button type="button" id="csv">CSV</button>
+          <button type="button" id="json">JSON</button>
+        </div>
+      </div>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="tablewrap">
+      <table id="board">
+        <thead>
+          <tr>
+            <th data-key="rank" class="num sorted">Rank</th>
+            <th data-key="name">Protocol</th>
+            <th data-key="tvl_usd" class="num">TVL</th>
+            <th data-key="change_7d" class="num">7d</th>
+            <th data-key="age_years" class="num">No-token age</th>
+            <th data-key="odds_pct" class="num">Token odds</th>
+            <th data-key="value_if_launches_usd" class="num">If it launches</th>
+            <th data-key="implied_value_usd" class="num">Implied value</th>
+            <th>Verdict</th>
+            <th data-key="per_hour_usd" class="num">Net / hour</th>
+            <th>Farm plan</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="foot">Snapshot as of <span id="asof"></span> · Values are this radar's own claim, derived only from the snapshot's figures — not a prediction that a token will be issued. Verdicts price the plan shown: change the deposit, drop share or horizon and every verdict is re-priced in this page.</p>
+  </section>
+
+  <aside class="detail" id="detail" aria-label="Protocol detail">
+    <p class="detail-empty">Select any row to see its figures, its verdict, its farm plan, and why the model ranks it there.</p>
+  </aside>
+</main>
+
+<script src="../data.js"></script>
+<script src="evidence.js"></script>
+<script src="radar.js"></script>
+</body>
+</html>
