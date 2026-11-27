@@ -11,7 +11,7 @@
 // What changed from v5, and why: the model does not change at all — same sealed snapshot,
 // same fits, same four-test admission rule, same printed figures. v6 changes only how the
 // board presents itself. The dossier's board view is now a dense board (#dense=1): the
-// whole watchlist and the ranked field beyond it — sixty-six protocols, priced and
+// whole watchlist and the ranked field beyond it — sixty-four protocols, priced and
 // verdicted — on one frame, under a freshness strip that states the sealed snapshot's
 // date, count and checksum and the product's published weekly refresh schedule with a
 // live countdown to the next re-scan. A short board read as a shortlist; the radar's
@@ -25,7 +25,7 @@
 // with its legend, and the two held-out ladders with every term's scores and verdict —
 // every figure generated from the same evidence this program writes, none of it
 // hand-typed. The frame also fits the gate's own measure: no side of any screenshot
-// passes 1440 px, so the whole board — deck, sixty-six rows and all — reads at the size
+// passes 1440 px, so the whole board — deck, sixty-four rows and all — reads at the size
 // it is handed in at.
 //
 // What changed from v4, and why: v4 admitted every model term only when it improved two

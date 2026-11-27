@@ -1,8 +1,8 @@
 // Launch Radar — the board page: renders window.RADAR (rows, main.ts's data.js)
 // and window.RADAR_MODEL (evidence.js) with no network — KPI tiles, accounting,
 // self-check chips, evidence tables, a sortable/filterable board whose verdicts
-// re-price live, farm plans and a detail view per protocol.
-// Hash routing: #p=<slug> · #q=<text> · #cat=<name> · #w=1 · #dense=1.
+// re-price live, farm plans and a detail view per protocol. Hash: #p= · #q= ·
+// #cat= · #w=1 · #dense=1.
 
 const DATA = window.RADAR;
 const M = window.RADAR_MODEL;
@@ -20,7 +20,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const ageText = (y) => (y >= 1 ? `${y.toFixed(1)} yr` : `${Math.max(1, Math.round(y * 365.25))} d`);
 const chainCell = (chains) => (chains.length <= 1 ? (chains[0] ?? '—') : `${chains[0]} +${chains.length - 1}`);
 
-// FNV-1a, the same hash main.ts prints: the chips below recompute it here.
+// FNV-1a — the hash main.ts prints; recomputed below.
 function fnv1a(text) {
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) {
@@ -41,8 +41,7 @@ function rowMinutes(r) {
   return { fixed: r.plan.reduce((s, x) => s + x.minutes, 0) - weeklyTotal, perWeek: weeklyTotal / M.scenario.horizon_weeks };
 }
 
-// The same arithmetic main.ts prices with, recomputed here so the scenario
-// controls re-price every row in the page.
+// The same arithmetic main.ts prices with, recomputed here for the controls.
 function econ(r) {
   const deposit = scen.depMode === 'pct' ? r.deposit_usd : Number(scen.depMode);
   const drop = (r.implied_value_usd * scen.dropShare * deposit) / Math.max(1, r.tvl_usd);
@@ -85,9 +84,9 @@ function renderKpis() {
   renderFreshness();
 }
 
-// The freshness strip: the snapshot's facts (date, count, checksum — from the
-// model evidence) and the refresh schedule: re-scan Mondays 00:00 UTC, counted
-// down live. A schedule readout, not a data claim; data stays sealed at M.as_of.
+// The freshness strip: the snapshot's facts (from the model evidence) and the
+// refresh schedule: re-scan Mondays 00:00 UTC, counted down live. A schedule
+// readout, not a data claim; data stays sealed at M.as_of.
 function nextRefresh(from) {
   const d = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate(), 0, 0, 0));
   const add = (8 - d.getUTCDay()) % 7 || 7; // days to the next Monday (never today)
@@ -152,9 +151,9 @@ function renderChips() {
 }
 
 const vChip = (v) => (v === 'kept' ? '<span class="keep">kept</span>' : v === 'baseline' ? '<span class="drop">baseline</span>' : v.startsWith('must') ? '<span class="ctrl">must not help</span>' : v.includes('noise') ? '<span class="ctrl">noise-level gain, not admitted</span>' : '<span class="drop">tested, not kept</span>');
+const coefText = () => M.coefficients.map((c) => `${esc(c.term)} slope ${c.estimate.toFixed(3)} ± ${c.se.toFixed(3)}`).join(' · ');
 
-// The dense board's evidence deck: headline cards, the accounting bar and the
-// two held-out ladders, from the model's evidence.
+// The dense board's evidence deck, from the model's evidence.
 function renderDenseDeck() {
   const k = M.kpis, h = M.honesty, c = M.chips;
   const byRank = [...rows].sort((a, b) => a.rank - b.rank);
@@ -177,9 +176,11 @@ function renderDenseDeck() {
     `<div class="dsegleg">Protocol accounting — ${M.accounting.map((a) => `${a.label} <b>${a.count}</b>`).join(' · ')}</div>`;
   const vr = M.value_stages.map((s) => `<tr><td>${esc(s.label)}</td><td class="num">×${s.tests.loo.miss.toFixed(2)} · ${s.tests.loo.within2}%</td><td class="num">×${s.tests.wf.miss.toFixed(2)} · ${s.tests.wf.within2}%</td><td>${vChip(s.verdict)}</td></tr>`).join('');
   const or = M.odds_stages.map((s) => `<tr><td>${esc(s.label)}</td><td class="num">${s.tests.fold.toFixed(3)}</td><td class="num">${s.tests.wf.toFixed(3)}</td><td>${vChip(s.verdict)}</td></tr>`).join('');
+  const coef = coefText();
   $('dpanels').innerHTML =
     `<div class="dp"><h3>Value if a token launches — typical miss, ${M.value_fit_n} traded comps</h3><table><tr><th>term, added in order</th><th class="num">leave-one-out</th><th class="num">walk-forward</th><th></th></tr>${vr}</table></div>` +
-    `<div class="dp"><h3>Token odds — Brier score, ${M.odds_sample_n} dated peers</h3><table><tr><th>term, added in order</th><th class="num">ten-fold</th><th class="num">walk-forward</th><th></th></tr>${or}</table></div>`;
+    `<div class="dp"><h3>Token odds — Brier score, ${M.odds_sample_n} dated peers</h3><table><tr><th>term, added in order</th><th class="num">ten-fold</th><th class="num">walk-forward</th><th></th></tr>${or}</table></div>` +
+    `<div class="dformula">Implied = <b>value if it launches</b> (TVL through the fitted size curve and family effect) × <b>token odds</b> · coefficients ± bootstrap s.e. (100 refits): ${coef}</div>`;
 }
 
 function renderEvidence() {
@@ -199,7 +200,7 @@ function renderEvidence() {
   ]
     .map((r) => `<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${r[2]}</td><td class="num">${r[3]}</td></tr>`)
     .join('');
-  const coef = M.coefficients.map((c) => `${esc(c.term)} slope ${c.estimate.toFixed(3)} ± ${c.se.toFixed(3)}`).join(' · ');
+  const coef = coefText();
   $('ev-fit').textContent =
     `Fitted on ${M.value_fit_n} priced comparables (walk-forward split at ${M.value_wf_cutoff}) and ${M.odds_sample_n} dated protocols (split at ${M.odds_wf_cutoff}). ` +
     (coef ? `Coefficients ± bootstrap s.e. (100 refits): ${coef}. ` : '') +
@@ -224,8 +225,7 @@ function readHash() {
   return out;
 }
 
-// Dense board view (#dense=1): slim header, the evidence deck and compact rows
-// on one frame inside the gate's measure. With #w=1: the watchlist only.
+// Dense board view (#dense=1): the deck and compact rows on one frame.
 const DENSE = readHash().dense;
 if (DENSE) document.body.classList.add('dense');
 
@@ -269,7 +269,7 @@ function visible() {
   return list;
 }
 
-// ---------------------------------------------------------------- the board
+// ---- the board
 
 function renderTabs() {
   const counts = { '': rows.length, FARM: 0, THIN: 0, SKIP: 0 };
@@ -331,15 +331,15 @@ function renderDenseBoard() {
   };
   let html = '';
   let shown = 0;
-  // The watchlist is its own segment — its 40 sit anywhere in the ranking — so
-  // the board sections by segment: the whole watchlist first, then 26 beyond.
+  // The watchlist is its own segment, so the board sections by segment:
+  // the whole watchlist first, then 24 beyond.
   const wl = byRank.filter((r) => r.watchlist);
   if (watchOnly) {
     html += divider(`The watchlist — all ${wl.length}, in rank order`, '· filtered view: segment = watchlist, every other ranked protocol hidden');
     html += wl.map(rowHtml).join('');
     shown = wl.length;
   } else {
-    const beyond = byRank.filter((r) => !r.watchlist).slice(0, 26);
+    const beyond = byRank.filter((r) => !r.watchlist).slice(0, 24);
     html += divider(`The watchlist — all ${wl.length}, in rank order`, '· every protocol on the house watchlist, priced and verdicted');
     html += wl.map(rowHtml).join('');
     html += divider(`Beyond the watchlist — ${beyond.length} more ranked protocols`, '· priced and verdicted below the line — the board does not stop at the watchlist');
@@ -393,7 +393,7 @@ function renderBoard() {
   renderTabs();
 }
 
-// ---------------------------------------------------------------- the detail view
+// ---- the detail view
 
 function whyLines(r, e) {
   const lines = [];
@@ -462,7 +462,7 @@ function renderDetail(slug) {
   renderBoard();
 }
 
-// ---------------------------------------------------------------- exports
+// ---- exports
 
 function download(name, text, type) {
   const a = document.createElement('a');
@@ -485,7 +485,7 @@ function exportJson() {
   download('launch-radar-board.json', JSON.stringify(visible(), null, 2), 'application/json');
 }
 
-// ---------------------------------------------------------------- wiring
+// ---- wiring
 
 function syncFromHash() {
   const h = readHash();

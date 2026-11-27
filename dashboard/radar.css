@@ -335,6 +335,8 @@ body.dense .dp th { text-align: left; color: var(--muted); font-weight: 400; pad
 body.dense .dp td { padding: 1px 4px; border-top: 1px solid rgba(29, 44, 71, .5); }
 body.dense .dp .num { text-align: right; }
 body.dense .dp .keep, body.dense .dp .drop, body.dense .dp .ctrl { font-size: 9.5px; }
+body.dense .dformula { grid-column: 1 / -1; font: 9.5px/1.35 var(--mono); color: var(--muted); padding: 0 2px; }
+body.dense .dformula b { color: var(--text); }
 body.dense .layout { display: block; max-width: 1460px; padding: 4px 16px 6px; }
 body.dense .tablewrap { max-height: none; overflow: visible; }
 body.dense #board { font-size: 10.5px; }
