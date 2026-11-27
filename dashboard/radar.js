@@ -154,7 +154,7 @@ function renderChips() {
 const vChip = (v) => (v === 'kept' ? '<span class="keep">kept</span>' : v === 'baseline' ? '<span class="drop">baseline</span>' : v.startsWith('must') ? '<span class="ctrl">must not help</span>' : v.includes('noise') ? '<span class="ctrl">noise-level gain, not admitted</span>' : '<span class="drop">tested, not kept</span>');
 
 // The dense board's evidence deck: headline cards, the accounting bar and the
-// two held-out ladders, generated from the model's evidence onto the board.
+// two held-out ladders, from the model's evidence.
 function renderDenseDeck() {
   const k = M.kpis, h = M.honesty, c = M.chips;
   const byRank = [...rows].sort((a, b) => a.rank - b.rank);
@@ -326,7 +326,7 @@ function renderDenseBoard() {
       <td class="num val">${money(r.implied_value_usd)}</td>
       <td><span class="tag ${vClass(e.label)}">${e.label}</span></td>
       <td class="num money">${perHourText(e.perHour)}</td>
-      <td class="num">${r.plan.length} steps</td>
+      <td class="num">${r.plan.length} steps · $${e.fees} · ${e.hours.toFixed(1)} h</td>
     </tr>`;
   };
   let html = '';
