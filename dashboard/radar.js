@@ -1,16 +1,8 @@
-// Launch Radar — the board page. Renders window.RADAR (the rows, written by main.ts beside
-// this page as ../data.js) and window.RADAR_MODEL (the fitted model's evidence, written by
-// main.ts into this folder as evidence.js) with no network: KPI evidence tiles, the full
-// protocol accounting, self-check chips recomputed in this page, the out-of-sample evidence
-// tables, a sortable/filterable ranked board whose farm verdicts re-price live under the
-// scenario controls, an expandable farm plan per row, and a detail view per protocol.
-//
-// Deep links (hash routing, combinable, e.g. #q=lend&cat=Lending or #p=some-slug):
-//   #p=<slug>    open that protocol's detail view
-//   #q=<text>    set the search box (matches name, category and chains)
-//   #cat=<name>  set the category filter
-//   #w=1         watchlist segment only
-// Sorting is a click on a column header and is deliberately not part of the link.
+// Launch Radar — the board page: renders window.RADAR (rows, main.ts's data.js)
+// and window.RADAR_MODEL (evidence.js) with no network — KPI tiles, accounting,
+// self-check chips, evidence tables, a sortable/filterable board whose verdicts
+// re-price live, farm plans and a detail view per protocol.
+// Hash routing: #p=<slug> · #q=<text> · #cat=<name> · #w=1 · #dense=1.
 
 const DATA = window.RADAR;
 const M = window.RADAR_MODEL;
@@ -28,7 +20,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const ageText = (y) => (y >= 1 ? `${y.toFixed(1)} yr` : `${Math.max(1, Math.round(y * 365.25))} d`);
 const chainCell = (chains) => (chains.length <= 1 ? (chains[0] ?? '—') : `${chains[0]} +${chains.length - 1}`);
 
-// FNV-1a, the same hash main.ts prints in its summary: the chips below recompute it here.
+// FNV-1a, the same hash main.ts prints: the chips below recompute it here.
 function fnv1a(text) {
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) {
@@ -38,7 +30,7 @@ function fnv1a(text) {
   return h.toString(16).padStart(8, '0');
 }
 
-// ---------------------------------------------------------------- scenario & per-row economics
+// ---- scenario & per-row economics
 
 const scen = { depMode: 'pct', dropShare: M.scenario.drop_share, horizon: M.scenario.horizon_weeks, tier: '', seg: '' };
 const DEFAULTS = { ...scen };
@@ -49,8 +41,8 @@ function rowMinutes(r) {
   return { fixed: r.plan.reduce((s, x) => s + x.minutes, 0) - weeklyTotal, perWeek: weeklyTotal / M.scenario.horizon_weeks };
 }
 
-// The same arithmetic main.ts prices with — deposit rule, pro-rata drop, the plan's own fees
-// and hours — recomputed here so the scenario controls re-price every row in the page.
+// The same arithmetic main.ts prices with, recomputed here so the scenario
+// controls re-price every row in the page.
 function econ(r) {
   const deposit = scen.depMode === 'pct' ? r.deposit_usd : Number(scen.depMode);
   const drop = (r.implied_value_usd * scen.dropShare * deposit) / Math.max(1, r.tvl_usd);
@@ -73,7 +65,7 @@ function verdictClause(r, e) {
 }
 const vClass = (label) => (label === 'FARM' ? 'v-farm' : label === 'THIN' ? 'v-warm' : 'v-watch');
 
-// ---------------------------------------------------------------- header: KPIs, accounting, chips, evidence
+// ---- header: KPIs, accounting, chips, evidence
 
 function renderKpis() {
   const k = M.kpis;
@@ -93,11 +85,9 @@ function renderKpis() {
   renderFreshness();
 }
 
-// The freshness strip: the sealed snapshot's own facts (date, protocol count,
-// checksum — recomputed from the model evidence, never hand-typed twice) and
-// the product's published refresh schedule: a re-scan and re-price every
-// Monday 00:00 UTC, with a live countdown to the next one. The countdown is a
-// schedule readout, not a data claim — the data stays sealed at M.as_of.
+// The freshness strip: the snapshot's facts (date, count, checksum — from the
+// model evidence) and the refresh schedule: re-scan Mondays 00:00 UTC, counted
+// down live. A schedule readout, not a data claim; data stays sealed at M.as_of.
 function nextRefresh(from) {
   const d = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate(), 0, 0, 0));
   const add = (8 - d.getUTCDay()) % 7 || 7; // days to the next Monday (never today)
@@ -161,40 +151,46 @@ function renderChips() {
   ].join('');
 }
 
-// The evidence strip: the dense board's face carries the deck's proof — the
-// whole ledger in one line, the self-checks recomputed here, the four tests.
-function renderEvStrip() {
-  const el = $('evstrip');
-  if (!el) return;
-  const sum = (f) => M.accounting.filter(f).reduce((s, a) => s + a.count, 0);
-  const total = sum(() => true);
-  const token = sum((a) => a.group.startsWith('token'));
-  const ranked = sum((a) => a.group.startsWith('ranked'));
+const vChip = (v) => (v === 'kept' ? '<span class="keep">kept</span>' : v === 'baseline' ? '<span class="drop">baseline</span>' : v.startsWith('must') ? '<span class="ctrl">must not help</span>' : v.includes('noise') ? '<span class="ctrl">noise-level gain, not admitted</span>' : '<span class="drop">tested, not kept</span>');
+
+// The dense board's evidence deck: headline cards, the accounting bar and the
+// two held-out ladders, generated from the model's evidence onto the board.
+function renderDenseDeck() {
+  const k = M.kpis, h = M.honesty, c = M.chips;
   const byRank = [...rows].sort((a, b) => a.rank - b.rank);
   const inOrder = byRank.every((r, i) => r.rank === i + 1 && (i === 0 || r.implied_value_usd < byRank[i - 1].implied_value_usd));
   const totImp = rows.reduce((s, r) => s + r.implied_value_usd, 0);
   const cks = fnv1a(byRank.map((r) => `${r.slug}:${r.rank}:${r.implied_value_usd}`).join('|'));
   const wl = rows.filter((r) => r.watchlist).length;
-  const mark = (ok) => (ok ? '✓' : '✗');
-  const v = M.value_final;
-  const o = M.odds_final;
-  const k = M.kpis;
-  el.innerHTML =
-    `<div><b>Ledger</b> — ${total} protocols, one group each: ${token} already record a token · ${total - token} pre-token → ${total - token - ranked} set aside → <b>${ranked} ranked</b> · verdicts FARM ${k.farm} / THIN ${k.thin} / SKIP ${k.skip}</div>` +
-    `<div><b>Recomputed in this page</b> — ${mark(inOrder)} ranks 1–${rows.length} in order, values never rise · ${mark(cks === M.chips.checksum)} checksum ${cks} = main.ts · ${mark(totImp === M.chips.total_implied)} implied total ${moneyFull(totImp)} · ${mark(wl === M.chips.watchlist_ranked)} watchlist ${wl}/${k.watchlist} ranked</div>` +
-    `<div><b>Held out, four ways</b> — value miss ×${v.h12.miss.toFixed(2)} / ×${v.h21.miss.toFixed(2)} / ×${v.loo.miss.toFixed(2)} / ×${v.wf.miss.toFixed(2)} (halves both ways · leave-one-out · walk-forward) · token-odds Brier ${o.h12.toFixed(3)} / ${o.h21.toFixed(3)} / ${o.fold.toFixed(3)} / ${o.wf.toFixed(3)}</div>`;
+  const ok = (b) => (b ? '✓' : '✗');
+  $('dkpis').innerHTML = [
+    ['Ranked, no token yet', `${k.ranked}`, `${wl} of ${k.watchlist} on the watchlist · ${ok(inOrder)} in implied order`],
+    ['Value miss, walk-forward', `×${k.wf_miss.toFixed(2)}`, `flat ×${k.flat_wf_miss.toFixed(2)} · leave-one-out ×${k.loo_miss.toFixed(2)}`],
+    ['Printed range honest?', `${h.wf50}% · ${h.wf80}%`, 'of real caps inside P25–P75 · P10–P90 (stated 50% · 80%)'],
+    ['Token odds, Brier', k.odds_wf_brier.toFixed(3), `walk-forward · base rate ${k.odds_base_wf.toFixed(3)} · ten-fold ${k.odds_fold_brier.toFixed(3)}`],
+    ['Terms kept, both tests', `${k.value_kept} of ${k.value_terms} · ${k.odds_kept} of ${k.odds_terms}`, 'value · odds — the rest are shown below, not used'],
+    ['Implied total, recomputed', moneyFull(totImp), `${ok(cks === c.checksum && totImp === c.total_implied)} checksum ${cks} = main.ts · ledger ${c.ledger} protocols`],
+  ].map((x) => `<div class="dk"><span>${x[0]}</span><b>${x[1]}</b><i>${x[2]}</i></div>`).join('');
+  const tot = M.accounting.reduce((s, a) => s + a.count, 0);
+  $('dseg').innerHTML =
+    `<div class="dsegrow">${M.accounting.map((a) => `<i class="sg${a.group[0]}" style="width:${(a.count / tot * 100).toFixed(2)}%"></i>`).join('')}</div>` +
+    `<div class="dsegleg">Protocol accounting — ${M.accounting.map((a) => `${a.label} <b>${a.count}</b>`).join(' · ')}</div>`;
+  const vr = M.value_stages.map((s) => `<tr><td>${esc(s.label)}</td><td class="num">×${s.tests.loo.miss.toFixed(2)} · ${s.tests.loo.within2}%</td><td class="num">×${s.tests.wf.miss.toFixed(2)} · ${s.tests.wf.within2}%</td><td>${vChip(s.verdict)}</td></tr>`).join('');
+  const or = M.odds_stages.map((s) => `<tr><td>${esc(s.label)}</td><td class="num">${s.tests.fold.toFixed(3)}</td><td class="num">${s.tests.wf.toFixed(3)}</td><td>${vChip(s.verdict)}</td></tr>`).join('');
+  $('dpanels').innerHTML =
+    `<div class="dp"><h3>Value if a token launches — typical miss, ${M.value_fit_n} traded comps</h3><table><tr><th>term, added in order</th><th class="num">leave-one-out</th><th class="num">walk-forward</th><th></th></tr>${vr}</table></div>` +
+    `<div class="dp"><h3>Token odds — Brier score, ${M.odds_sample_n} dated peers</h3><table><tr><th>term, added in order</th><th class="num">ten-fold</th><th class="num">walk-forward</th><th></th></tr>${or}</table></div>`;
 }
 
 function renderEvidence() {
   $('ev-vn').textContent = M.value_fit_n;
   $('ev-on').textContent = M.odds_sample_n;
-  const vChip = (v) => (v === 'kept' ? '<span class="keep">kept</span>' : v.includes('noise-level') ? '<span class="ctrl">noise-level gain, not admitted</span>' : v.startsWith('must') ? '<span class="ctrl">must not help</span>' : '<span class="drop">tested, not kept</span>');
   const vCell = (t) => `×${t.miss.toFixed(2)} · ${t.within2}%`;
   $('ev-value').innerHTML = M.value_stages
-    .map((s) => `<tr><td>${esc(s.label)}</td><td class="num">${vCell(s.tests.h12)}</td><td class="num">${vCell(s.tests.h21)}</td><td class="num">${vCell(s.tests.loo)}</td><td class="num">${vCell(s.tests.wf)}</td><td>${s.verdict === 'baseline' ? '<span class="drop">baseline</span>' : vChip(s.verdict)}</td></tr>`)
+    .map((s) => `<tr><td>${esc(s.label)}</td><td class="num">${vCell(s.tests.h12)}</td><td class="num">${vCell(s.tests.h21)}</td><td class="num">${vCell(s.tests.loo)}</td><td class="num">${vCell(s.tests.wf)}</td><td>${vChip(s.verdict)}</td></tr>`)
     .join('');
   $('ev-odds').innerHTML = M.odds_stages
-    .map((s) => `<tr><td>${esc(s.label)}</td><td class="num">${s.tests.h12.toFixed(3)}</td><td class="num">${s.tests.h21.toFixed(3)}</td><td class="num">${s.tests.fold.toFixed(3)}</td><td class="num">${s.tests.wf.toFixed(3)}</td><td>${s.verdict === 'baseline' ? '<span class="drop">baseline</span>' : vChip(s.verdict)}</td></tr>`)
+    .map((s) => `<tr><td>${esc(s.label)}</td><td class="num">${s.tests.h12.toFixed(3)}</td><td class="num">${s.tests.h21.toFixed(3)}</td><td class="num">${s.tests.fold.toFixed(3)}</td><td class="num">${s.tests.wf.toFixed(3)}</td><td>${vChip(s.verdict)}</td></tr>`)
     .join('');
   const h = M.honesty;
   $('ev-range').innerHTML = [
@@ -211,7 +207,7 @@ function renderEvidence() {
   $('reading').textContent = M.reading;
 }
 
-// ---------------------------------------------------------------- state from the hash
+// ---- state from the hash
 
 function readHash() {
   const out = { p: '', q: '', cat: '', w: false, dense: false };
@@ -228,10 +224,8 @@ function readHash() {
   return out;
 }
 
-// Dense board view (#dense=1): the ranked board alone on one tall frame — slim
-// header, no evidence deck, compact rows — so a single view carries the whole
-// watchlist and the ranked field beyond it. With #w=1 it shows the watchlist
-// only: the filtered dense view.
+// Dense board view (#dense=1): slim header, the evidence deck and compact rows
+// on one frame inside the gate's measure. With #w=1: the watchlist only.
 const DENSE = readHash().dense;
 if (DENSE) document.body.classList.add('dense');
 
@@ -309,9 +303,8 @@ function planRow(r, e) {
   </td></tr>`;
 }
 
-// The dense board: rows in rank order, compact single-line cells, section
-// dividers at the watchlist line. With #w=1 the dense view is the watchlist
-// alone — the same table under the segment filter.
+// The dense board: rows in rank order, compact single-line cells, dividers at
+// the watchlist line.
 function renderDenseBoard() {
   const byRank = [...rows].sort((a, b) => a.rank - b.rank);
   const watchOnly = readHash().w;
@@ -338,17 +331,15 @@ function renderDenseBoard() {
   };
   let html = '';
   let shown = 0;
-  // The watchlist is a segment of its own — its 40 protocols sit anywhere in
-  // the ranking (tonight: ranks 1 to 69) — so the dense board sections by
-  // segment, not by rank band: the whole watchlist first, in rank order,
-  // then the next forty ranked protocols beyond it.
+  // The watchlist is its own segment — its 40 sit anywhere in the ranking — so
+  // the board sections by segment: the whole watchlist first, then 26 beyond.
   const wl = byRank.filter((r) => r.watchlist);
   if (watchOnly) {
     html += divider(`The watchlist — all ${wl.length}, in rank order`, '· filtered view: segment = watchlist, every other ranked protocol hidden');
     html += wl.map(rowHtml).join('');
     shown = wl.length;
   } else {
-    const beyond = byRank.filter((r) => !r.watchlist).slice(0, 40);
+    const beyond = byRank.filter((r) => !r.watchlist).slice(0, 26);
     html += divider(`The watchlist — all ${wl.length}, in rank order`, '· every protocol on the house watchlist, priced and verdicted');
     html += wl.map(rowHtml).join('');
     html += divider(`Beyond the watchlist — ${beyond.length} more ranked protocols`, '· priced and verdicted below the line — the board does not stop at the watchlist');
@@ -529,7 +520,7 @@ function init() {
   renderKpis();
   renderAccounting();
   renderChips();
-  renderEvStrip();
+  renderDenseDeck();
   renderEvidence();
   $('q').addEventListener('input', refresh);
   $('cat').addEventListener('change', refresh);

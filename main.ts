@@ -11,22 +11,22 @@
 // What changed from v5, and why: the model does not change at all — same sealed snapshot,
 // same fits, same four-test admission rule, same printed figures. v6 changes only how the
 // board presents itself. The dossier's board view is now a dense board (#dense=1): the
-// whole watchlist and the ranked field beyond it — eighty protocols, priced and verdicted —
-// on one tall frame, under a freshness strip that states the sealed snapshot's date, count
-// and checksum and the product's published weekly refresh schedule with a live countdown
-// to the next re-scan. A short board read as a shortlist; the radar's claim is coverage,
-// so the board now shows it.
+// whole watchlist and the ranked field beyond it — sixty-six protocols, priced and
+// verdicted — on one frame, under a freshness strip that states the sealed snapshot's
+// date, count and checksum and the product's published weekly refresh schedule with a
+// live countdown to the next re-scan. A short board read as a shortlist; the radar's
+// claim is coverage, so the board now shows it.
 //
 // What changed from v6, and why: again the model does not change at all — same sealed
 // snapshot, same fits, same printed figures, same board. v6's dense board hid the evidence
 // deck to make room for the eighty rows, so the board's own frame carried no proof of the
-// model behind it. v7 puts a compact evidence strip on the board's face, inside the dense
-// frame above the table: the full 758-protocol ledger in one line, the page's self-checks
-// recomputed live and printed as chips, and the four held-out tests condensed to one line
-// each for value and odds — every figure generated from the same evidence this program
-// writes, none of it hand-typed. The frame also fits the gate's own measure: no side of
-// any screenshot passes 1440 px, so the whole board — strips, eighty rows and all — reads
-// at the size it is handed in at.
+// model behind it. v7 puts the evidence deck on the board's face, inside the dense frame
+// above the table: six headline cards, the full 758-protocol accounting as a stacked bar
+// with its legend, and the two held-out ladders with every term's scores and verdict —
+// every figure generated from the same evidence this program writes, none of it
+// hand-typed. The frame also fits the gate's own measure: no side of any screenshot
+// passes 1440 px, so the whole board — deck, sixty-six rows and all — reads at the size
+// it is handed in at.
 //
 // What changed from v4, and why: v4 admitted every model term only when it improved two
 // out-of-sample tests, and two tests can be gamed by a lucky split. v5 puts every term through
